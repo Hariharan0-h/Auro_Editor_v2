@@ -111,12 +111,23 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
   }
   
   ngAfterViewInit(): void {
-    // Set initial content
+    // Set initial content with a longer timeout to ensure DOM is ready
     setTimeout(() => {
-      this.editorCanvas.nativeElement.focus();
-      this.loadPage(1);
-      this.updateCanvasSize();
-    }, 0);
+      if (this.editorCanvas && this.editorCanvas.nativeElement) {
+        this.editorCanvas.nativeElement.focus();
+        this.loadPage(1);
+        this.updateCanvasSize();
+        
+        // Add click event listener to the document to close context menu when clicking elsewhere
+        document.addEventListener('click', (event) => {
+          if (this.showContextMenu && 
+              event.target && 
+              !(event.target as HTMLElement).closest('.context-menu')) {
+            this.showContextMenu = false;
+          }
+        });
+      }
+    }, 100);
   }
   
   // Initialize pages
@@ -337,14 +348,62 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
   changeFontSize(event: Event): void {
     this.focusEditor();
     const select = event.target as HTMLSelectElement;
-    document.execCommand('fontSize', false, select.value);
+    const size = select.value;
+    
+    // Use a different approach than the standard execCommand
+    if (this.currentSelection) {
+      const span = document.createElement('span');
+      span.style.fontSize = `${size}px`;
+      
+      // Get selected content
+      const selectedContent = this.currentSelection.extractContents();
+      span.appendChild(selectedContent);
+      
+      // Insert the new span
+      this.currentSelection.insertNode(span);
+      
+      // Update selection
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+        this.currentSelection = range.cloneRange();
+      }
+    }
+    
     this.saveCurrentPage();
   }
   
   changeFontFamily(event: Event): void {
     this.focusEditor();
     const select = event.target as HTMLSelectElement;
-    document.execCommand('fontName', false, select.value);
+    const fontFamily = select.value;
+    
+    // Use a different approach than the standard execCommand
+    if (this.currentSelection) {
+      const span = document.createElement('span');
+      span.style.fontFamily = fontFamily;
+      
+      // Get selected content
+      const selectedContent = this.currentSelection.extractContents();
+      span.appendChild(selectedContent);
+      
+      // Insert the new span
+      this.currentSelection.insertNode(span);
+      
+      // Update selection
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+        this.currentSelection = range.cloneRange();
+      }
+    }
+    
     this.saveCurrentPage();
   }
   
@@ -676,9 +735,9 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
   // Insert a text box
   insertTextBox(): void {
     // Create text box element
-    const textBox = this.renderer.createElement('div');
-    this.renderer.addClass(textBox, 'text-box');
-    this.renderer.setAttribute(textBox, 'contenteditable', 'true');
+    const textBox = document.createElement('div');
+    textBox.classList.add('text-box');
+    textBox.setAttribute('contenteditable', 'true');
     
     // Set default styles
     textBox.style.position = 'absolute';
@@ -686,16 +745,17 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
     textBox.style.top = '20mm';
     textBox.style.width = '50mm';
     textBox.style.height = '20mm';
+    textBox.style.zIndex = '10';
     
     // Add default text
     textBox.innerHTML = 'Enter your text here...';
     
+    // Add to canvas
+    this.editorCanvas.nativeElement.appendChild(textBox);
+    
     // Make it draggable and resizable
     this.makeElementDraggable(textBox);
     this.makeElementResizable(textBox);
-    
-    // Add to canvas
-    this.renderer.appendChild(this.editorCanvas.nativeElement, textBox);
     
     // Select the newly added text box
     this.selectedElement = textBox;
@@ -800,10 +860,13 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
     this.dragStartX = event.clientX;
     this.dragStartY = event.clientY;
     
-    // Store initial element position
+    // Get current position
     const rect = element.getBoundingClientRect();
-    this.elementStartLeft = rect.left;
-    this.elementStartTop = rect.top;
+    const canvasRect = this.editorCanvas.nativeElement.getBoundingClientRect();
+    
+    // Store initial element position relative to the canvas
+    this.elementStartLeft = rect.left - canvasRect.left;
+    this.elementStartTop = rect.top - canvasRect.top;
     
     // Add drag listeners
     document.addEventListener('mousemove', this.dragMove);
@@ -820,9 +883,9 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
     const dx = event.clientX - this.dragStartX;
     const dy = event.clientY - this.dragStartY;
     
-    // Apply new position
-    this.selectedElement.style.left = (this.elementStartLeft + dx) + 'px';
-    this.selectedElement.style.top = (this.elementStartTop + dy) + 'px';
+    // Apply new position - make sure to use px units
+    this.selectedElement.style.left = `${this.elementStartLeft + dx}px`;
+    this.selectedElement.style.top = `${this.elementStartTop + dy}px`;
   }
   
   // Stop drag operation
@@ -844,10 +907,24 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
       element.style.position = 'absolute';
       element.style.left = '10mm';
       element.style.top = '10mm';
+      element.style.zIndex = '10'; // Add z-index to ensure it's above other elements
     }
     
     // Add drag handle
     this.addDragHandle(element);
+    
+    // Add the event listener directly to the element for better dragging
+    element.addEventListener('mousedown', (e) => {
+      if (!e.target || (e.target as HTMLElement).classList.contains('resize-handle')) {
+        return; // Don't start drag if clicking on resize handle
+      }
+      
+      // Only start drag if clicking on the drag handle or the element itself
+      if ((e.target as HTMLElement).classList.contains('drag-handle') || 
+          e.target === element) {
+        this.startDrag(e, element);
+      }
+    });
   }
   
   // Make elements resizable
@@ -916,9 +993,8 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
       img.style.top = '10mm';
       img.style.width = '40mm';
       
-      // Make it draggable and resizable
-      this.makeElementDraggable(img);
-      this.makeElementResizable(img);
+      // Make it draggable
+      img.style.cursor = 'move';
       
       // Add to canvas
       this.editorCanvas.nativeElement.appendChild(img);
@@ -926,6 +1002,10 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
       // Select the newly added image
       this.selectedElement = img;
       this.applySelectionStyling();
+      
+      // Make it draggable and resizable
+      this.makeElementDraggable(img);
+      this.makeElementResizable(img);
       
       this.saveCurrentPage();
       this.closeModal();
@@ -943,6 +1023,8 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
   }
   
   insertTable(): void {
+    if (!this.editorCanvas) return;
+    
     // Create table structure
     const table = document.createElement('table');
     table.classList.add('editor-table');
@@ -957,11 +1039,11 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
     
     for (let j = 0; j < this.tableCols; j++) {
       const th = document.createElement('th');
-      th.contentEditable = 'true';
+      th.innerHTML = `Header ${j+1}`;
+      th.setAttribute('contenteditable', 'true');
       th.style.border = '1px solid #ccc';
       th.style.padding = '8px';
       th.style.backgroundColor = '#f2f2f2';
-      th.textContent = `Header ${j+1}`;
       headerRow.appendChild(th);
     }
     
@@ -976,10 +1058,10 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
       
       for (let j = 0; j < this.tableCols; j++) {
         const cell = document.createElement('td');
-        cell.contentEditable = 'true';
+        cell.innerHTML = `Cell ${i+1}-${j+1}`;
+        cell.setAttribute('contenteditable', 'true');
         cell.style.border = '1px solid #ccc';
         cell.style.padding = '8px';
-        cell.textContent = `Cell ${i+1}-${j+1}`;
         row.appendChild(cell);
       }
       
@@ -988,21 +1070,13 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
     
     table.appendChild(tbody);
     
-    // Focus editor and insert at current position
-    this.focusEditor();
-    
-    if (this.currentSelection) {
-      // Insert at current selection
-      this.currentSelection.deleteContents();
-      this.currentSelection.insertNode(table);
-    } else {
-      // Append to editor
-      this.editorCanvas.nativeElement.appendChild(table);
-    }
+    // Append to editor canvas directly
+    this.editorCanvas.nativeElement.appendChild(table);
     
     this.saveCurrentPage();
     this.closeModal();
   }
+  
   
   // Table edit functions
   editTable(): void {
@@ -1166,7 +1240,7 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
   }
   
   insertField(): void {
-    if (this.selectedField) {
+    if (this.selectedField && this.editorCanvas) {
       // Create field element
       const fieldSpan = document.createElement('span');
       fieldSpan.classList.add('editor-field');
@@ -1177,16 +1251,19 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
       fieldSpan.style.display = 'inline-block';
       fieldSpan.style.margin = '0 3px';
       
-      // Focus editor and insert at current position
-      this.focusEditor();
+      // Append to editor if no selection
+      this.editorCanvas.nativeElement.appendChild(fieldSpan);
       
-      if (this.currentSelection) {
-        // Insert at current selection
-        this.currentSelection.deleteContents();
-        this.currentSelection.insertNode(fieldSpan);
-      } else {
-        // Append to editor
-        this.editorCanvas.nativeElement.appendChild(fieldSpan);
+      // Set current selection after insertion
+      const range = document.createRange();
+      range.setStartAfter(fieldSpan);
+      range.collapse(true);
+      
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+        this.currentSelection = range.cloneRange();
       }
       
       this.saveCurrentPage();
@@ -1196,8 +1273,10 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
   
   // Export function
   exportContent(): void {
-    // Get current content
+    // Save the current page first
     this.saveCurrentPage();
+    
+    // Get current content
     const content = this.editorCanvas.nativeElement.innerHTML;
     
     // Create a full HTML document
@@ -1280,9 +1359,15 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${docTitle.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(a); // Important: Append to the document
     a.click();
     
-    URL.revokeObjectURL(url);
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
     this.closeModal();
   }
   
@@ -1376,10 +1461,7 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
       dateModified: new Date()
     };
     
-    // In a real app, this would send to a backend service
-    console.log('Saving document:', documentData);
-    
-    // For demo/testing, also show a download dialog
+    // Create JSON data for download
     const jsonData = JSON.stringify(documentData, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1387,9 +1469,14 @@ export class AuroEditorComponent implements OnInit, AfterViewInit {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${formData.name.replace(/\s+/g, '_')}.auroedit`;
+    document.body.appendChild(a); // Important: Append to document
     a.click();
     
-    URL.revokeObjectURL(url);
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
     
     // Show success notification
     alert('Form saved successfully!');
