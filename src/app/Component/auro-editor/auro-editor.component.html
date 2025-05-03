@@ -1,1 +1,656 @@
-<p>auro-editor works!</p>
+<!-- auro-editor.component.html -->
+<div class="auro-editor-container">
+    <!-- A. Header Section -->
+    <div class="editor-header">
+      <div class="header-title">Auro Editor <span class="subtitle">Form Builder</span></div>
+      <div class="header-date">{{ today | date:'EEEE, MMMM d, y' }}</div>
+    </div>
+  
+    <!-- B. Collapsable Form Section -->
+    <div class="form-section" [class.collapsed]="isFormCollapsed">
+      <div class="form-header" (click)="toggleFormSection()">
+        <span>Form Settings</span>
+        <span class="collapse-icon">{{ isFormCollapsed ? '▼' : '▲' }}</span>
+      </div>
+      <div class="form-content" *ngIf="!isFormCollapsed">
+        <form [formGroup]="editorForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="purpose">Purpose</label>
+              <select id="purpose" formControlName="purpose">
+                <option value="New Form">New Form</option>
+                <option value="Surgery Consent Form">Surgery Consent Form</option>
+                <option value="Patient Registration">Patient Registration</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input type="text" id="name" formControlName="name" placeholder="Enter Name">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formNumber">Form Number</label>
+              <input type="text" id="formNumber" formControlName="formNumber" placeholder="Enter Form Number">
+            </div>
+            <div class="form-group">
+              <label for="language">Language</label>
+              <select id="language" formControlName="language">
+                <option *ngFor="let lang of languages" [value]="lang">{{ lang }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="layout">Layout</label>
+              <select id="layout" formControlName="layout">
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="paperSize">Paper Size</label>
+              <select id="paperSize" formControlName="paperSize">
+                <option value="a4">A4 (210×297mm)</option>
+                <option value="letter">Letter (216×279mm)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group margin-group">
+              <label>Margins (mm)</label>
+              <div class="margin-inputs">
+                <div>
+                  <label for="marginTop">T</label>
+                  <input type="number" id="marginTop" formControlName="marginTop" min="0" max="50" step="1">
+                </div>
+                <div>
+                  <label for="marginRight">R</label>
+                  <input type="number" id="marginRight" formControlName="marginRight" min="0" max="50" step="1">
+                </div>
+                <div>
+                  <label for="marginBottom">B</label>
+                  <input type="number" id="marginBottom" formControlName="marginBottom" min="0" max="50" step="1">
+                </div>
+                <div>
+                  <label for="marginLeft">L</label>
+                  <input type="number" id="marginLeft" formControlName="marginLeft" min="0" max="50" step="1">
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  
+    <!-- C. Text Editor Section -->
+    <div class="editor-section">
+      <!-- C1. Toolbar Section -->
+      <div class="editor-toolbar">
+        <!-- Main tools -->
+        <div class="toolbar-group">
+          <button class="toolbar-btn with-text" (click)="insertTextBox()" title="Text">
+            <span class="icon-text">A</span> Text
+          </button>
+          <button class="toolbar-btn with-text" (click)="openInsertModal('image')" title="Image">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            Image
+          </button>
+          <button class="toolbar-btn with-text" (click)="openInsertModal('table')" title="Table">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="3" y1="15" x2="21" y2="15"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+            Table
+          </button>
+          <button class="toolbar-btn with-text" (click)="openInsertModal('field')" title="Field">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5l6.74-6.76z"></path>
+              <line x1="16" y1="8" x2="2" y2="22"></line>
+              <line x1="17.5" y1="15" x2="9" y2="15"></line>
+            </svg>
+            Field
+          </button>
+        </div>
+        
+        <!-- Text formatting tools -->
+        <div class="toolbar-group">
+          <button class="toolbar-btn" (click)="formatText('bold')" [class.active]="isFormatActive('bold')" title="Bold">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
+              <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
+            </svg>
+          </button>
+          <button class="toolbar-btn" (click)="formatText('italic')" [class.active]="isFormatActive('italic')" title="Italic">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="4" x2="10" y2="4"></line>
+              <line x1="14" y1="20" x2="5" y2="20"></line>
+              <line x1="15" y1="4" x2="9" y2="20"></line>
+            </svg>
+          </button>
+          <button class="toolbar-btn" (click)="formatText('underline')" [class.active]="isFormatActive('underline')" title="Underline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path>
+              <line x1="4" y1="21" x2="20" y2="21"></line>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Alignment tools -->
+        <div class="toolbar-group">
+          <button class="toolbar-btn" (click)="alignText('left')" [class.active]="currentAlignment === 'left'" title="Align Left">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="14" y2="12"></line>
+              <line x1="4" y1="18" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <button class="toolbar-btn" (click)="alignText('center')" [class.active]="currentAlignment === 'center'" title="Align Center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+              <line x1="6" y1="18" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <button class="toolbar-btn" (click)="alignText('right')" [class.active]="currentAlignment === 'right'" title="Align Right">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="10" y1="12" x2="20" y2="12"></line>
+              <line x1="6" y1="18" x2="20" y2="18"></line>
+            </svg>
+          </button>
+          <button class="toolbar-btn" (click)="alignText('justify')" [class.active]="currentAlignment === 'justify'" title="Justify">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="4" y1="12" x2="20" y2="12"></line>
+              <line x1="4" y1="18" x2="20" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Font tools -->
+        <div class="toolbar-group">
+          <label for="fontSize">Size</label>
+          <select class="font-size-select" id="fontSize" (change)="changeFontSize($event)" title="Font Size">
+            <option *ngFor="let size of fontSizes" [value]="size">{{ size }}px</option>
+          </select>
+          <label for="fontFamily">Font</label>
+          <select class="font-family-select" id="fontFamily" (change)="changeFontFamily($event)" title="Font Family">
+            <option *ngFor="let font of fontFamilies" [value]="font">{{ font }}</option>
+          </select>
+          <input type="color" class="color-picker" (change)="changeColor($event)" title="Text Color">
+        </div>
+        
+        <!-- Additional formatting tools -->
+        <div class="toolbar-group">
+          <button class="toolbar-btn" title="Left to Right">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+          <button class="toolbar-btn" title="Indent">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+          <button class="toolbar-btn" title="Outdent">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- History tools -->
+        <div class="toolbar-group">
+          <button class="toolbar-btn" (click)="undo()" title="Undo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7v6h6"></path>
+              <path d="M3 13c0-4.4 3.6-8 8-8 3.7 0 6.8 2.5 7.8 6"></path>
+            </svg>
+          </button>
+          <button class="toolbar-btn" (click)="redo()" title="Redo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 7v6h-6"></path>
+              <path d="M21 13c0-4.4-3.6-8-8-8-3.7 0-6.8 2.5-7.8 6"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Right-aligned tools -->
+        <div class="right-aligned-tools">
+          <button class="toolbar-btn" (click)="duplicateItem()" title="Duplicate">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <button class="toolbar-btn" (click)="deleteItem()" title="Delete">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+  
+      <!-- C2. Canvas Section -->
+      <div class="editor-canvas-container">
+        <div 
+          class="editor-canvas" 
+          [style.width.mm]="getCanvasWidth()" 
+          [style.height.mm]="getCanvasHeight()"
+          [style.transform]="'scale(' + zoomLevel/100 + ')'"
+          #editorCanvas
+          [contentEditable]="true"
+          (mousedown)="onCanvasMouseDown($event)"
+          (click)="onCanvasClick($event)"
+          (contextmenu)="onContextMenu($event)">
+        </div>
+      </div>
+      
+      <!-- Context Menu -->
+      <div class="context-menu" *ngIf="showContextMenu" [style.top.px]="contextMenuY" [style.left.px]="contextMenuX">
+        <div class="context-menu-item" (click)="duplicateItem()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Duplicate Item
+        </div>
+        <div class="context-menu-item" (click)="deleteItem()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Delete Item
+        </div>
+        <div class="context-menu-item" (click)="rotateItem()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Rotate 90°
+        </div>
+        <div class="context-menu-item" *ngIf="isSelectedTable()" (click)="editTable()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="3" y1="15" x2="21" y2="15"></line>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+          Edit Table
+        </div>
+        <div class="context-menu-item" *ngIf="isSelectedItem('text-box')" (click)="editTextBox()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          Edit Text
+        </div>
+      </div>
+      
+      <!-- Modal Templates -->
+      <!-- Image Modal -->
+      <div class="modal" *ngIf="showImageModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              Insert Image
+            </h3>
+            <button class="close-btn" (click)="closeModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="file-upload-container">
+              <label for="imageFile" class="file-upload-label">
+                <div class="upload-icon"></div>
+                <span>Choose an image file</span>
+              </label>
+              <input type="file" id="imageFile" class="file-upload-input" (change)="onImageSelected($event)" accept="image/*">
+            </div>
+            <div class="image-preview" *ngIf="imagePreview">
+              <img [src]="imagePreview" alt="Image Preview">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-primary" [disabled]="!imagePreview" (click)="insertImage()">
+              Insert
+            </button>
+            <button class="btn-secondary" (click)="closeModal()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Table Modal -->
+      <div class="modal" *ngIf="showTableModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <line x1="15" y1="3" x2="15" y2="21"></line>
+              </svg>
+              Insert Table
+            </h3>
+            <button class="close-btn" (click)="closeModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="table-grid-container">
+              <div class="table-grid">
+                <div 
+                  *ngFor="let row of [].constructor(8); let i = index" 
+                  class="table-grid-row">
+                  <div 
+                    *ngFor="let col of [].constructor(8); let j = index" 
+                    class="table-grid-cell"
+                    [class.selected]="i < tableRows && j < tableCols"
+                    (mouseover)="updateTableSelection(i+1, j+1)"
+                    (click)="confirmTableSelection()">
+                  </div>
+                </div>
+              </div>
+              <div class="table-size-display">{{ tableRows }} × {{ tableCols }}</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-primary" (click)="insertTable()">
+              Insert
+            </button>
+            <button class="btn-secondary" (click)="closeModal()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Field Modal -->
+      <div class="modal" *ngIf="showFieldModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <path d="M7 7h10"></path>
+                <path d="M7 12h10"></path>
+                <path d="M7 17h10"></path>
+              </svg>
+              Insert Field
+            </h3>
+            <button class="close-btn" (click)="closeModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="field-grid">
+              <div 
+                *ngFor="let field of surgicalFields" 
+                class="field-item"
+                [class.selected]="selectedField === field.id"
+                (click)="selectField(field.id)">
+                <div class="field-icon" [ngSwitch]="field.icon">
+                  <svg *ngSwitchCase="'user'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <svg *ngSwitchCase="'cake'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 20h18"></path>
+                    <path d="M3 10h18v10H3V10Z"></path>
+                    <path d="M12 4a2 2 0 0 0-2 2v4h4V6a2 2 0 0 0-2-2Z"></path>
+                    <path d="M7 10V8a5 5 0 0 1 10 0v2"></path>
+                  </svg>
+                  <svg *ngSwitchCase="'eye'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg *ngSwitchDefault xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                  <path d="M7 7h10"></path>
+                  <path d="M7 12h10"></path>
+                  <path d="M7 17h10"></path>
+                </svg>
+              </div>
+              <div class="field-label">{{ field.label }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" [disabled]="!selectedField" (click)="insertField()">
+            Insert
+          </button>
+          <button class="btn-secondary" (click)="closeModal()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Table Edit Modal -->
+    <div class="modal" *ngIf="showTableEditModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="3" y1="15" x2="21" y2="15"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+            Edit Table
+          </h3>
+          <button class="close-btn" (click)="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="table-controls">
+            <button (click)="addTableRow('before')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Row Before
+            </button>
+            <button (click)="addTableRow('after')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Row After
+            </button>
+          </div>
+          <div class="table-controls">
+            <button (click)="addTableColumn('before')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Column Before
+            </button>
+            <button (click)="addTableColumn('after')">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Column After
+            </button>
+          </div>
+          <div class="table-controls">
+            <button (click)="deleteTableRow()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Delete Row
+            </button>
+            <button (click)="deleteTableColumn()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Delete Column
+            </button>
+          </div>
+          <div class="table-controls">
+            <button (click)="makeTableDraggable()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="5 9 2 12 5 15"></polyline>
+                <polyline points="9 5 12 2 15 5"></polyline>
+                <polyline points="15 19 12 22 9 19"></polyline>
+                <polyline points="19 9 22 12 19 15"></polyline>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="12" y1="2" x2="12" y2="22"></line>
+              </svg>
+              Make Draggable
+            </button>
+            <button (click)="makeTableResizable()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h6v6"></path>
+                <path d="M21 3l-7 7"></path>
+              </svg>
+              Make Resizable
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" (click)="closeModal()">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Export Modal -->
+    <div class="modal" *ngIf="showExportModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export Project
+          </h3>
+          <button class="close-btn" (click)="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="export-options">
+            <h4>Export Format</h4>
+            <div class="export-format-select">
+              <select>
+                <option value="html">HTML</option>
+                <option value="pdf">PDF</option>
+                <option value="docx">DOCX</option>
+              </select>
+            </div>
+            
+            <h4>Details</h4>
+            <div class="export-details">
+              <p>HTML format exports as a web page viewable in any browser.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" (click)="exportContent()">
+            Download
+          </button>
+          <button class="btn-secondary" (click)="closeModal()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Navigation and Controls -->
+    <div class="editor-controls">
+      <div class="page-navigation">
+        <button class="nav-btn" (click)="previousPage()" [disabled]="currentPage === 1" title="Previous Page">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <span class="page-indicator">Page {{ currentPage }} of {{ totalPages }}</span>
+        <button class="nav-btn" (click)="nextPage()" [disabled]="currentPage === totalPages" title="Next Page">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+        <button class="add-page-btn" (click)="addPage()" title="Add Page">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          Add Page
+        </button>
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" (click)="changeZoom(-10)" title="Zoom Out">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </button>
+        <span class="zoom-level">{{ zoomLevel }}%</span>
+        <button class="zoom-btn" (click)="changeZoom(10)" title="Zoom In">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="11" y1="8" x2="11" y2="14"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- D. Save Button -->
+  <div class="editor-footer">
+    <button class="save-button" (click)="saveContent()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+        <polyline points="7 3 7 8 15 8"></polyline>
+      </svg>
+      Save
+    </button>
+    <button class="load-button">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+      </svg>
+      Load
+    </button>
+    <button class="export-button" (click)="openInsertModal('export')">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      Export
+    </button>
+  </div>
+</div>
